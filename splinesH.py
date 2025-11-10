@@ -5,20 +5,19 @@ import matplotlib.pyplot as plt
 from scipy.special import binom
 
 minmax = 7
-fig = plt.figure(figsize=(8,8))
-ax = fig.add_subplot(111)
-ax.set_xlim((-minmax,minmax))
-ax.set_ylim((-minmax,minmax))
-ax.set_xlabel('x-axis')
-ax.set_ylabel('y-axis')
-ax.set_title("Acquisition window") 
-ax.grid(True)
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8,10))
+ax1.set_xlim((-minmax,minmax))
+ax1.set_ylim((-minmax,minmax))
+ax1.set_xlabel('x-axis')
+ax1.set_ylabel('y-axis')
+ax1.set_title("Acquisition window") 
+ax1.grid(True)
 
 def bezier_cubic(t, p0, p1, p2, p3):
     """
-    Cubic Bézier interpolation using 4 control points.
+    Cubic BÃ©zier interpolation using 4 control points.
 
-    This is a special-case optimization for Bézier curves of degree 3.
+    This is a special-case optimization for BÃ©zier curves of degree 3.
     It uses the expanded Bernstein polynomial form for faster computation.
     """
 
@@ -26,6 +25,20 @@ def bezier_cubic(t, p0, p1, p2, p3):
             3 * (1 - t)**2 * t * p1 +
             3 * (1 - t) * t**2 * p2 +
             t**3 * p3)
+def bezier_cubic_prime(t, p0, p1, p2, p3):
+    """ 
+    First derivative of a cubic BÃ©zier curve.
+    """
+    return (3 * (1 - t)**2 * (p1 - p0) +
+            6 * (1 - t) * t * (p2 - p1) +
+            3 * t**2 * (p3 - p2))
+
+def bezier_cubic_second(t, p0, p1, p2, p3):
+    """
+    Second derivativeof a cubic BÃ©zier curve.
+    """
+    return (6 * (1 - t) * (p2 - 2 * p1 + p0) +
+            6 * t * (p3 - 2 * p2 + p1))
 
 def PolygonAcquisition(ax,color1,color2) :
     """ Acquisition of a 2D polygon in the window with subplot "ax" 
@@ -76,14 +89,14 @@ def ComputeTangents_equidistant(Points, c) :
     n_points = len(Points) - 1
     m = [np.zeros(2) for _ in range(n_points + 1)]
     m[0] = ComputeTangentVectors(Points[0], Points[1], 0, 1, c)
-    for i in range(1,n_points-1):
+    for i in range(1,n_points):
         m[i] = ComputeTangentVectors(Points[i-1], Points[i+1], i-1, i+1, c)
     m[n_points] = ComputeTangentVectors(Points[n_points - 1], Points[n_points], n_points - 1, n_points, c )
     return m
 
 def splinesHermite():
     c = float(input("Enter tension parameter c (0 for Catmull-Rom, 1 for linear): "))
-    xp, yp = PolygonAcquisition(ax,'ob','--b')
+    xp, yp = PolygonAcquisition(ax1,'ob','--b')
     n_points = len(xp)
     if n_points < 2:
         print("Il faut au moins deux points.")
@@ -95,22 +108,39 @@ def splinesHermite():
 
     Bezier_segments = []
     t_segment = np.linspace(0, 1, 100)
-
+    K = []
+    t_global = []
+    ax1.set_title("Spline d'Hermite")
     for i in range(n_segments):
         Bezier_segment = []
 
         B0, B1, B2, B3 = Hermite2Bezier(Points[i], Points[i+1], m[i], m[i+1])
+        
         Bezier_segment = np.array([bezier_cubic(t, B0, B1, B2, B3) for t in t_segment])
         
+        calculCourbure(i,B0,B1,B2,B3,K,t_global)
         #Bezier_segments.append(Bezier_segment)
-        ax.plot(Bezier_segment[:,0], Bezier_segment[:,1], 'r')
+        ax1.plot(Bezier_segment[:,0], Bezier_segment[:,1], 'r')
         plt.draw()
-        
-        #Bezier_segments.append(Bezier_segment)
+    
 
 
-    plt.title("Hermite Spline Interpolation")
-    plt.axis('equal')
+    
+    ax2.plot(t_global,K)
+    ax2.set_xlabel('ParamÃ¨tre t')
+    ax2.set_ylabel('Courbure Îº')
+    ax2.set_title('Courbure de la spline')
+    ax2.grid(True)
+
+    plt.tight_layout()
     plt.show()
+
+def calculCourbure(i_segment,B0,B1,B2,B3,K,T):
+    """ Le calcul de la courbure """
+    t_intervalle = np.linspace(i_segment,i_segment+1,100)
+    for t in t_intervalle:
+        T.append(t)
+        A = np.array([[bezier_cubic_prime(t,B0,B1,B2,B3)[i]] +[bezier_cubic_second(t,B0,B1,B2,B3)[i]] for i in range(0,2)])
+        K.append(np.linalg.det(A)/np.linalg.norm(np.array(bezier_cubic_prime(t,B0,B1,B2,B3)))**3)
 
 splinesHermite()
