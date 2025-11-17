@@ -5,14 +5,7 @@ import matplotlib.pyplot as plt
 from scipy.special import binom
 
 
-minmax = 7
-fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8,10))
-ax1.set_xlim((-minmax,minmax))
-ax1.set_ylim((-minmax,minmax))
-ax1.set_xlabel('x-axis')
-ax1.set_ylabel('y-axis')
-ax1.set_title("Acquisition window") 
-ax1.grid(True)
+
 
 def bezier_cubic(t, p0, p1, p2, p3):
     """
@@ -238,5 +231,13 @@ def splines(Order):
     plt.show()
 
 if __name__ == "__main__" :
+        minmax = 7
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8,10))
+        ax1.set_xlim((-minmax,minmax))
+        ax1.set_ylim((-minmax,minmax))
+        ax1.set_xlabel('x-axis')
+        ax1.set_ylabel('y-axis')
+        ax1.set_title("Acquisition window") 
+        ax1.grid(True)
         Ordre = int(input("Enter spline order (1 for C1 (Hermite splines), 2 for C2): "))
         splines(Ordre)
