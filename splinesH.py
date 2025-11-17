@@ -4,6 +4,7 @@ import time
 import matplotlib.pyplot as plt
 from scipy.special import binom
 
+
 minmax = 7
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8,10))
 ax1.set_xlim((-minmax,minmax))
@@ -236,6 +237,6 @@ def splines(Order):
     plt.tight_layout()
     plt.show()
 
-
-Ordre = int(input("Enter spline order (1 for C1 (Hermite splines), 2 for C2): "))
-splines(Ordre)
+if __name__ == "__main__" :
+        Ordre = int(input("Enter spline order (1 for C1 (Hermite splines), 2 for C2): "))
+        splines(Ordre)
