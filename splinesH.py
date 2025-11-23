@@ -292,6 +292,7 @@ def ManualPointAcquisition():
             print("Erreur: Veuillez n'entrer que des nombres séparés par des virgules.")
             
 
+
 if __name__ == "__main__":
     minmax = 7
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10,10))
@@ -299,15 +300,23 @@ if __name__ == "__main__":
     ax1.set_ylim((-minmax,minmax))
     ax1.set_xlabel('Axe des x')
     ax1.set_ylabel('Axe des y')
-    ax1.set_title("Fenetre d'acquisition / Tracé")
     ax1.grid(True)
     ax2.grid(True)
     
-    # Sélection du Mode d'Acquisition
+    
+    # Demande de l'Ordre
+    Ordre = int(input("Entrer l'ordre de la spline (1 pour C1, 2 pour C2): "))
+
+    # Demande de la Tension (si C1)
+    tension = None
+    if Ordre == 1:
+        tension = float(input("Entrer le parametre de tension c (0 pour Catmull-Rom, 1 pour linear): "))
+
+    # Demande du Mode d'Acquisition
     mode = input("Mode d'acquisition : (M)anuelle ou (G)raphique ? [G/M] ").strip().upper()
     
     xp, yp = [], []
-    # Variables fournies pour le test du contre-exemple de convex
+        # Variables fournies pour le test du contre-exemple de convex
     """ xp = [0, 4.5, 5, 4.5, 2.5, 0, 0]
     yp = [0, 0, 1.5, 3, 5, 3, 0] """
     # Monotonie
@@ -329,58 +338,49 @@ if __name__ == "__main__":
     """ xp = [-4.0, -4.0, -2.0, -1.0, 1.0, 2.0, 4.0, 4.0, -4.0]
     yp = [-4.0, 0.0, 0.0, 4.0, 4.0, 0.0, 0.0, -4.0, -4.0]
  """
+
     if mode == 'M':
         # Saisie Manuelle
+        ax1.set_title("Saisie Manuelle (Voir Terminal)")
         xp, yp = ManualPointAcquisition()
-
-        ax1.set_title("Tracé des points saisis manuellement")
         
     elif mode == 'G':
-        # Mode Graphique (PolygonAcquisition)
-        ax1.set_title("Fenetre d'acquisition (Clic droit pour terminer)")
-        # Vous devez utiliser l'objet ax1 pour PolygonAcquisition
+        # Acquisition Graphique (PolygonAcquisition)
+        # La fenêtre s'ouvre. Le terminal attend ici.
+        ax1.set_title("Acquisition Graphique (Clic droit ou Entrée pour terminer)")
         xp, yp = PolygonAcquisition(ax1,'ob','--b')
         
     else:
         print("Mode non reconnu. Abandon.")
         plt.close(fig)
         exit()
-
     if len(xp) < 2:
         print("Il faut au moins deux points pour continuer.")
         plt.close(fig)
         exit()
 
-    Ordre = int(input("Entrer l'ordre de la spline (1 pour C1, 2 pour C2): "))
-
-    # Demander le paramètre c seulement si l'ordre C1 est sélectionné
-    tension = None
-    if Ordre == 1:
-        tension = float(input("Entrer le parametre de tension c (0 pour Catmull-Rom, 1 pour linear): "))
-
-
     n_points = len(xp)
     Points = [np.array([xp[i], yp[i]]) for i in range(n_points)]
 
-    ax1.plot(xp, yp, 'ko', label='Points de contrôle', ms=8)
-    if mode != 'G':
-        # Si le mode est Manuel, il faut tracer la ligne brisée de base.
+    # Tracé des points et du polygone
+    if mode == 'M':
+
         ax1.plot(xp, yp, '--b', label='Polygone de contrôle')
-        
+    ax1.plot(xp, yp, 'ko', label='Points de contrôle', ms=8)
+    
 
     xs, ys, K, t_global = compute_spline(Points, Ordre, tension=tension)
 
-    
-    # Tracé de la courbe sur ax1
     ax1.plot(xs, ys, 'r', label=f'Spline C{Ordre}')
     ax1.set_title(f"Interpolation de la Spline C{Ordre}")
     ax1.legend()
     
-    # Tracé de la courbure sur ax2
     ax2.plot(t_global, K, 'r')
     ax2.set_xlabel('Paramètre t')
-    ax2.set_ylabel('Courbure $\\kappa$')
+    ax2.set_ylabel('Courbure')
     ax2.set_title(f'Courbure de la Spline C{Ordre}')
     
     plt.tight_layout()
     plt.show()
+
+    
