@@ -3,7 +3,7 @@ import numpy as np
 
 # Assurez-vous d'utiliser le nom de fichier correct pour l'importation
 from Lagrange import compute_lagrange 
-from splinesH import compute_spline, PolygonAcquisition 
+from splinesH import compute_spline, PolygonAcquisition, ManualPointAcquisition
 
 
 def main():
@@ -33,33 +33,59 @@ def main():
     ax1.set_ylim((-minmax, minmax))
     ax1.set_xlabel('Axe des x')
     ax1.set_ylabel('Axe des y')
-    ax1.set_title("Cliquer pour placer les points (La fenêtre ou appuyer sur Entrée pour terminer)")
-    # Les grids
     ax1.grid(True)
     ax2.grid(True)
-
+    
     # Demande du paramètre de tension pour la spline C1 
     tension = float(input("Entrez la tension pour la spline C1 (0=Catmull-Rom, 1=linéaire): "))
 
+    # Choix du Mode d'Acquisition
+    mode = input("Mode d'acquisition : (M)anuelle ou (G)raphique ? [G/M] ").strip().upper()
+    xp, yp = [], []
+
     # Acquisition des points ---
-    xp, yp = PolygonAcquisition(ax1, 'ob', '--b')
+    if mode == 'M':
+        xp, yp = ManualPointAcquisition()
+        ax1.set_title("Tracé des points saisis manuellement")
+        
+    elif mode == 'G':
+        ax1.set_title("Cliquer pour placer les points (La fenêtre ou appuyer sur Entrée pour terminer)")
+        xp, yp = PolygonAcquisition(ax1, 'ob', '--b')
+        
+    else:
+        print("Mode non reconnu. Abandon.")
+        plt.close(fig)
+        return
+
     if len(xp) < 2:
         print("Il faut au moins 2 points.")
         plt.close(fig) 
         return
     points = np.column_stack((xp, yp))
-
+    
+    if mode == 'M':
+        ax1.plot(xp, yp, 'ko', label='Points de contrôle', zorder=5, ms=8)
+        ax1.plot(xp, yp, '--k', label='Polygone de contrôle')
+    elif mode == 'G':
+        ax1.plot(xp, yp, 'ko', label='Points de contrôle', zorder=5, ms=8)
+        ax1.plot(xp, yp, '--k', label='Polygone de contrôle')
+    
     # Calcul des courbes et courbures 
-    xs_c1, ys_c1, K_c1, t_c1 = compute_spline(points, order=1, tension=tension)
-    xs_c2, ys_c2, K_c2, t_c2 = compute_spline(points, order=2)
-    xs_lg, ys_lg, K_lg, t_lg = compute_lagrange(points) # Récupération de K_lg et t_lg
+    try:
+        xs_c1, ys_c1, K_c1, t_c1 = compute_spline(points, order=1, tension=tension)
+        xs_c2, ys_c2, K_c2, t_c2 = compute_spline(points, order=2)
+        xs_lg, ys_lg, K_lg, t_lg = compute_lagrange(points) # Récupération de K_lg et t_lg
+    except ValueError as e:
+        print(f"Erreur de calcul: {e}")
+        plt.close(fig)
+        return
+
 
     #####################################################################
-    #######   1. Tracé de la Figure Principale (Superposition)    #######
+    #######       1. Tracé de la Figure de Superposition          #######
     #####################################################################
     
     # Tracé des courbes sur l'axe de superposition (ax1)
-    ax1.plot(points[:,0], points[:,1], 'ko', label='Points de contrôle', zorder=5)
     ax1.plot(xs_c1, ys_c1, 'r', label='Spline C1 (Hermite)')
     ax1.plot(xs_c2, ys_c2, 'g', label='Spline C2')
     ax1.plot(xs_lg, ys_lg, 'b', label='Interpolation de Lagrange')
@@ -121,9 +147,8 @@ def main():
     # Ligne 2: Courbure (ax6)
     ax6.plot(t_c1, K_c1, 'r', label='Courbure C1')
     ax6.grid(True)
-    ax6.set_title('Courbure C1 $')
+    ax6.set_title('Courbure C1')
     ax6.set_xlabel('t')
-    ax6.grid(True)
     ax6.legend()
 
     # Colonne 2: C2 Spline
@@ -169,8 +194,7 @@ def main():
     for ax in [ax6, ax7, ax8]:
          ax.set_ylabel('Courbure')
          
-    # Finalisation : ajustement serré des sous-graphiques
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95]) # Ajuster pour laisser de la place au suptitle
+
     plt.show()
 
 if __name__ == "__main__":
