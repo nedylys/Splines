@@ -2,7 +2,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from random import randint
-from splinesH import PolygonAcquisition # Assurez-vous que splinesH est accessible
+from splinesH import PolygonAcquisition, ManualPointAcquisition # Assurez-vous que splinesH est accessible
 
 
 def Aitken_Neville(P, N, t):
@@ -114,43 +114,62 @@ def lagrange_interpolation():
     plt.show()
 
 
-if __name__ == "__main__" :
+if __name__ == "__main__":
     minmax = 7
-    # La figure est configurée pour afficher la courbe (ax1) et la courbure (ax2)
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8,10))
     ax1.set_xlim((-minmax,minmax))
     ax1.set_ylim((-minmax,minmax))
     ax1.set_xlabel('Axe des x')
     ax1.set_ylabel('Axe des y')
-    ax1.set_title("Acquisition window") 
     ax1.grid(True)
     ax2.grid(True)
     
-
-    xp,yp = PolygonAcquisition(ax1,'ob','--b')
+    # Sélection du Mode d'Acquisition
+    mode = input("Mode d'acquisition pour Lagrange : (M)anuelle ou (G)raphique ? [G/M] ").strip().upper()
     
-    if len(xp) < 2:
-        print("Il faut au moins deux points.")
+    xp, yp = [], []
+
+    if mode == 'M':
+        # Mode Saisie Manuelle
+        xp, yp = ManualPointAcquisition()
+        ax1.set_title("Tracé des points saisis manuellement")
+        
+    elif mode == 'G':
+        # Mode Graphique (PolygonAcquisition)
+        ax1.set_title("Acquisition graphique (Clic droit pour terminer)")
+        xp, yp = PolygonAcquisition(ax1,'ob','--b')
+        
+    else:
+        print("Mode non reconnu. Abandon.")
         plt.close(fig)
         exit()
-        
-    Points = [np.array([xp[i], yp[i]]) for i in range(len(xp))]
+
+    if len(xp) < 2:
+        print("Il faut au moins deux points pour continuer.")
+        plt.close(fig)
+        exit()
     
+    Points = [np.array([xp[i], yp[i]]) for i in range(len(xp))]
+
+
     xs, ys, K, t_global = compute_lagrange(Points)
+
+    
+    if mode != 'G':
+        ax1.plot(xp, yp, '--b', label='Polygone de contrôle')
+    
+    ax1.plot(xp, yp, 'ko', label='Points de contrôle', ms=8)
     
     # Tracé de la courbe sur ax1
     ax1.plot(xs, ys, 'r', label='Lagrange Interpolation')
-    ax1.plot(xp, yp, 'ko', label='Control Points')
     ax1.set_title("Interpolation de Lagrange via Aitken–Neville")
-    ax2.grid(True)
     ax1.legend()
     
     # Tracé de la courbure sur ax2
     ax2.plot(t_global, K, 'r')
     ax2.set_xlabel('Paramètre t')
-    ax2.set_ylabel('Courbure')
+    ax2.set_ylabel('Courbure $\\kappa$')
     ax2.set_title('Courbure de l\'interpolation de Lagrange')
-    ax2.grid(True)
     
     plt.tight_layout()
     plt.show()
