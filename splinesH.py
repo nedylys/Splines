@@ -36,26 +36,28 @@ def bezier_cubic_second(t, p0, p1, p2, p3):
             6 * t * (p3 - 2 * p2 + p1))
 
 def PolygonAcquisition(ax,color1,color2) :
-    """ Acquisition of a 2D polygon in the window with subplot "ax" 
-        right click stop the acquisition
+    """ Acquisition of a 2D polygon.
+        Left-click to add points. Close the figure window to stop acquisition.
     """
-    x = [] # x is an empty list
+    x = []
     y = []
-    coord = 0
-    while coord != []:
-        coord = plt.ginput(1, mouse_add=1, mouse_stop=3, mouse_pop=2)
-        # coord is a list of tuples : coord = [(x,y)]
-        if coord != []:
-            xx = coord[0][0]
-            yy = coord[0][1]
-            ax.plot(xx,yy,color1,ms=8)
+    
+    # Use ginput with no mouse buttons specified, stop by closing the window
+    # The first element of the list `coord` is the list of (x,y) tuples
+    coord = plt.ginput(-1, mouse_add=1, mouse_pop=2) # -1 means infinite clicks until the figure is closed or ESC is pressed
+
+    if coord:
+        for xx, yy in coord:
             x.append(xx)
             y.append(yy)
-            plt.draw()
-            if len(x) > 1 :
-                ax.plot([x[-2],x[-1]],[y[-2],y[-1]],color2)
-    return x,y
-
+            ax.plot(xx, yy, color1, ms=8)
+        
+        # Plot the segments after all points are acquired
+        if len(x) > 1:
+            ax.plot(x, y, color2)
+            
+    plt.draw() # Force a final draw
+    return x, y
 def Hermite2Bezier(P0,P1,T0,T1) :
     """ Conversion of a Hermite spline defined by points P0 and P1
         and tangents T0 and T1 into a Bezier spline defined by
@@ -230,14 +232,77 @@ def splines(Order):
     plt.tight_layout()
     plt.show()
 
+def compute_spline(points, order, tension=None):
+    n_points = len(points)
+    n_segments = n_points - 1
+    
+    if order == 1:
+        if tension is None:
+            raise ValueError("C1 spline requires tension parameter.")
+        m = ComputeTangents_equidistant(points, tension)
+    elif order == 2:
+        m = ComputeTangentVectors_C2(points)
+
+    xs = []
+    ys = []
+    K = []
+    t_global = []
+
+    t_segment = np.linspace(0, 1, 500)
+
+    for i in range(n_segments):
+        B0, B1, B2, B3 = Hermite2Bezier(points[i], points[i+1], m[i], m[i+1])
+        segment = np.array([bezier_cubic(t, B0, B1, B2, B3) for t in t_segment])
+        
+        xs.extend(segment[:,0])
+        ys.extend(segment[:,1])
+
+        calculCourbure(i, B0, B1, B2, B3, K, t_global)
+
+    return np.array(xs), np.array(ys), np.array(K), np.array(t_global)
+
+
 if __name__ == "__main__" :
-        minmax = 7
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8,10))
-        ax1.set_xlim((-minmax,minmax))
-        ax1.set_ylim((-minmax,minmax))
-        ax1.set_xlabel('x-axis')
-        ax1.set_ylabel('y-axis')
-        ax1.set_title("Acquisition window") 
-        ax1.grid(True)
-        Ordre = int(input("Enter spline order (1 for C1 (Hermite splines), 2 for C2): "))
-        splines(Ordre)
+    minmax = 7
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8,10))
+    ax1.set_xlim((-minmax,minmax))
+    ax1.set_ylim((-minmax,minmax))
+    ax1.set_xlabel('Axe des x')
+    ax1.set_ylabel('Axe des y')
+    ax1.set_title("Fenetre d'acquisition")
+    ax1.grid(True)
+    ax2.grid(True)
+    
+    Ordre = int(input("Entrer l'ordre de la spline (1 pour C1 (Splines d'Hermite), 2 pour C2): "))
+    
+    # Demander le paramètre c seulement si l'ordre C1 est sélectionné
+    tension = None
+    if Ordre == 1:
+        tension = float(input("Entrer le parametre de tension c (0 pour Catmull-Rom, 1 pour linear): "))
+        
+    xp, yp = PolygonAcquisition(ax1,'ob','--b')
+    
+    if len(xp) < 2:
+        print("Il faut au moins deux points.")
+        plt.close(fig) # Fermer la fenêtre si l'acquisition a échoué
+        exit()
+
+    n_points = len(xp)
+    Points = [np.array([xp[i], yp[i]]) for i in range(n_points)]
+
+    xs, ys, K, t_global = compute_spline(Points, Ordre, tension=tension)
+    
+    # Tracé de la courbe sur ax1
+    ax1.plot(xs, ys, 'r', label=f'Spline C{Ordre}')
+    ax1.set_title(f"Interpolation de la Spline C{Ordre}")
+    ax1.legend()
+    
+    # Tracé de la courbure sur ax2
+    ax2.plot(t_global, K, 'r')
+    ax2.set_xlabel('Parametre t')
+    ax2.set_ylabel('Courbure')
+    ax2.set_title(f'Courbure de la Spline C{Ordre}')
+    ax2.grid(True)
+    
+    plt.tight_layout()
+    plt.show()
