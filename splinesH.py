@@ -58,6 +58,7 @@ def PolygonAcquisition(ax,color1,color2) :
             
     plt.draw() # Force a final draw
     return x, y
+
 def Hermite2Bezier(P0,P1,T0,T1) :
     """ Conversion of a Hermite spline defined by points P0 and P1
         and tangents T0 and T1 into a Bezier spline defined by
@@ -264,7 +265,7 @@ def compute_spline(points, order, tension=None):
 
 if __name__ == "__main__" :
     minmax = 7
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8,10))
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10,10))
     ax1.set_xlim((-minmax,minmax))
     ax1.set_ylim((-minmax,minmax))
     ax1.set_xlabel('Axe des x')
@@ -280,7 +281,47 @@ if __name__ == "__main__" :
     if Ordre == 1:
         tension = float(input("Entrer le parametre de tension c (0 pour Catmull-Rom, 1 pour linear): "))
         
-    xp, yp = PolygonAcquisition(ax1,'ob','--b')
+    """ xp, yp = PolygonAcquisition(ax1,'ob','--b') """
+    # Variables fournies pour le test du contre-exemple de convex
+    """ xp = [0, 4.5, 5, 4.5, 2.5, 0, 0]
+    yp = [0, 0, 1.5, 3, 5, 3, 0] """
+    # Monotonie
+    """ xp = [-5.0, -3.0, -2.0, 0.0, 6.0]
+    yp = [1.0, 1.1, 5.0, 5.5, 6.0] """
+    # Ondulations
+    """ xp = [-6.0, -3.0, -2.5, 0.0, 6.0]
+    yp = [0.0, 0.0, 6.0, 0.0, 0.0]
+ """
+    # Coeur
+    """ xp = [-3, -4, -3, -1, 0, 1, 3, 4, 3, 2, 1, 0, -1, -2, -3]
+    yp = [ 2,  4,  6,  7, 6, 7, 6, 4, 2, 0, -2, -4, -2,  0,  2] """
+
+    # Baguette
+    """ xp = [-7, -6, -4, 0, 4, 6, 7, 6, 4, 0, -4, -6, -7]
+    yp = [ 0,  2,  3, 3, 3, 2, 0, -2, -3, -3, -3, -2,  0] """
+
+    # Voiture
+    xp = [-4.0, -4.0, -2.0, -1.0, 1.0, 2.0, 4.0, 4.0, -4.0]
+    yp = [-4.0, 0.0, 0.0, 4.0, 4.0, 0.0, 0.0, -4.0, -4.0]
+
+    # Assurez-vous que ax et color1/color2 sont définis dans le contexte
+    # Nous allons supposer que ax est l'objet Axes de Matplotlib.
+
+    # --- 1. Tracer les points de contrôle ---
+    # Utilisation de zip() pour itérer sur les paires (xx, yy)
+    for xx, yy in zip(xp, yp):
+        # Tracé du point individuel (par exemple, un cercle)
+        ax1.plot(xx, yy, '--ob', ms=8) 
+
+    # --- 2. Tracer les segments connectés (la ligne brisée) ---
+    # Il suffit d'appeler plot une seule fois avec les listes complètes x et y.
+    if len(xp) > 1:
+        ax1.plot(xp, yp, '--b') 
+        
+    # Si vous vouliez tracer un segment final spécifique (comme le segment d'acquisition initial), 
+    # vous pouvez utiliser :
+    # if len(x) > 1:
+    #     ax.plot(x, y, '--k')
     
     if len(xp) < 2:
         print("Il faut au moins deux points.")
