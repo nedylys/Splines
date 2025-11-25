@@ -168,7 +168,7 @@ if __name__ == "__main__":
     # Tracé de la courbure sur ax2
     ax2.plot(t_global, K, 'r')
     ax2.set_xlabel('Paramètre t')
-    ax2.set_ylabel('Courbure $\\kappa$')
+    ax2.set_ylabel('Courbure')
     ax2.set_title('Courbure de l\'interpolation de Lagrange')
     
     plt.tight_layout()

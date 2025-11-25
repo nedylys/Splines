@@ -9,20 +9,19 @@ from scipy.special import binom
 
 def bezier_cubic(t, p0, p1, p2, p3):
     """
-    Cubic BÃ©zier interpolation using 4 control points.
+    Interpolation de Bézier cubique utilisant 4 points de contrôle.
 
-    This is a special-case optimization for BÃ©zier curves of degree 3.
-    It uses the expanded Bernstein polynomial form for faster computation.
+    Il s'agit d'une optimisation spécifique pour les courbes de Bézier de degré 3.
+    Elle utilise la forme développée des polynômes de Bernstein afin d'accélérer les calculs.
     """
-
     return ((1 - t)**3 * p0 +
             3 * (1 - t)**2 * t * p1 +
             3 * (1 - t) * t**2 * p2 +
             t**3 * p3)
 
 def bezier_cubic_prime(t, p0, p1, p2, p3):
-    """ 
-    First derivative of a cubic BÃ©zier curve.
+    """
+    Première dérivée d'une courbe de Bézier cubique.
     """
     return (3 * (1 - t)**2 * (p1 - p0) +
             6 * (1 - t) * t * (p2 - p1) +
@@ -30,21 +29,22 @@ def bezier_cubic_prime(t, p0, p1, p2, p3):
 
 def bezier_cubic_second(t, p0, p1, p2, p3):
     """
-    Second derivativeof a cubic BÃ©zier curve.
+    Seconde dérivée d'une courbe de Bézier cubique.
     """
     return (6 * (1 - t) * (p2 - 2 * p1 + p0) +
             6 * t * (p3 - 2 * p2 + p1))
 
 def PolygonAcquisition(ax,color1,color2) :
     """ Acquisition of a 2D polygon.
-        Left-click to add points. Close the figure window to stop acquisition.
+    Left-click to add points. Close the figure window to stop acquisition.
     """
+
     x = []
     y = []
     
-    # Use ginput with no mouse buttons specified, stop by closing the window
-    # The first element of the list `coord` is the list of (x,y) tuples
-    coord = plt.ginput(-1, mouse_add=1, mouse_pop=2) # -1 means infinite clicks until the figure is closed or ESC is pressed
+    # Utilise ginput sans préciser de boutons de souris ; l’acquisition s’arrête en fermant la fenêtre
+    # Le premier élément de la liste 'coord' est la liste des couples (x, y)
+    coord = plt.ginput(-1, mouse_add=1, mouse_pop=2) # -1 signifie clics illimités jusqu'à fermeture de la fenêtre ou pression de ESC
 
     if coord:
         for xx, yy in coord:
@@ -52,18 +52,21 @@ def PolygonAcquisition(ax,color1,color2) :
             y.append(yy)
             ax.plot(xx, yy, color1, ms=8)
         
-        # Plot the segments after all points are acquired
+        # Trace les segments une fois que tous les points ont été acquis
         if len(x) > 1:
             ax.plot(x, y, color2)
             
-    plt.draw() # Force a final draw
+    plt.draw() # Force un rafraîchissement final du tracé
     return x, y
 
 def Hermite2Bezier(P0,P1,T0,T1) :
-    """ Conversion of a Hermite spline defined by points P0 and P1
-        and tangents T0 and T1 into a Bezier spline defined by
-        control points B0, B1, B2, B3
     """
+    Conversion d'une spline d'Hermite définie par les points P0 et P1
+    et les tangentes T0 et T1 en une spline de Bézier définie par
+    les points de contrôle B0, B1, B2 et B3.
+    """
+
+
     B0 = P0
     B1 = P0 + T0/3.0
     B2 = P1 - T1/3.0
@@ -71,18 +74,22 @@ def Hermite2Bezier(P0,P1,T0,T1) :
     return B0,B1,B2,B3
 
 def ComputeTangentVectors(P1, P2, u1, u2, c) :
-    """ Compute the tangent vectors at points P1 and P2
-        for a spline with chord length parameterization
-        and tension parameter c
     """
+    Calcule les vecteurs tangents aux points P1 et P2
+    pour une spline paramétrée par la longueur de corde
+    avec un paramètre de tension c.
+    """
+
     m_k = (1 - c)*((P2 - P1)/ (u2 - u1))
     return m_k
 
 
 def ComputeTangents_equidistant(Points, c):
-    """Compute tangents for equidistant parameterization (Catmull-Rom like).
-       Points: list of 2D numpy arrays.
     """
+    Calcule les tangentes pour un paramétrage équidistant (de type Catmull-Rom).
+    Points : liste de tableaux numpy 2D.
+    """
+
     n_points = len(Points)
     m = [np.zeros(2) for _ in range(n_points)]
     if n_points == 1:
@@ -97,13 +104,13 @@ def ComputeTangents_equidistant(Points, c):
 
 
 def calculCourbure(i_segment, B0, B1, B2, B3, K, T):
-    """Calcul de la courbure Îº(t) pour le segment i_segment."""
+    """Calcul de la courbure k(t) pour le segment i_segment."""
     t_intervalle = np.linspace(0, 1, 100)
     for t in t_intervalle:
         T.append(t + i_segment)
         d1 = bezier_cubic_prime(t, B0, B1, B2, B3)
         d2 = bezier_cubic_second(t, B0, B1, B2, B3)
-        # Îº = |x'y'' - y'x''| / ( (x'^2 + y'^2)^(3/2) )
+        # k = |x'y'' - y'x''| / ( (x'^2 + y'^2)^(3/2) )
         numerateur = d1[0]*d2[1] - d1[1]*d2[0]
         denominateur = np.linalg.norm(d1)**3
         kappa = numerateur / denominateur if denominateur > 1e-10 else 0
@@ -111,16 +118,17 @@ def calculCourbure(i_segment, B0, B1, B2, B3, K, T):
 
 
 def Cholesky_Factorization(Diag, Diagsym):
-    """ 
-    In our case, we have a symmetric tridiagonal matrix with a strictly positive diagonal. 
-    It is defined by its diagonal Diag and its sub-diagonal Diagsym, so there is no need to store the entire matrix (only zeros that would waste memory).
-    The function returns the Cholesky factorization in the form of a list LDiag (the diagonal of L) and LDiagsym (the sub-diagonal of L).
     """
+    Dans notre cas, nous manipulons une matrice tridiagonale symétrique à diagonale strictement positive.
+    Elle est définie par sa diagonale `Diag` et sa sous-diagonale `Diagsym`, il est donc inutile de stocker la matrice complète (les zéros gaspilleraient de la mémoire).
+    La fonction renvoie la factorisation de Cholesky sous la forme de `T_Diag` (diagonale de T) et `T_ss_Diag` (sous-diagonale de T).
+    """
+
     n = len(Diag)
     if n < 2:
         raise ValueError("The spline must have at least two points.")
-    T_Diag = np.zeros(n) # diagonal of T (Matrice de Cholesky)
-    T_ss_Diag = np.zeros(n-1) # sub-diagonal of T
+    T_Diag = np.zeros(n) # diagonale de T (matrice de Cholesky)
+    T_ss_Diag = np.zeros(n-1) # sous-diagonale de T
     T_Diag[0] = np.sqrt(Diag[0])
     for i in range(1,n):
         T_ss_Diag[i-1] = Diagsym[i-1]/T_Diag[i-1]
@@ -132,19 +140,20 @@ def Cholesky_Factorization(Diag, Diagsym):
 
 
 def Solve_Cholesky(T_Diag, T_ss_Diag, B):
-    """ 
-        Solving the system T.transp(T).X=BT
-        where T is a lower triangular matrix
-        defined by its diagonal T_Diag and its sub-diagonal T_ss_Diag.
     """
-    B = np.asarray(B, dtype=float) # ensure B is a numpy array of floats, if it is already an array it will not be changed (asarray makes no copies in that case)
+    Résolution du système T · Tᵀ · X = B,
+    où T est une matrice triangulaire inférieure définie par sa diagonale `T_Diag`
+    et sa sous-diagonale `T_ss_Diag`.
+    """
+
+    B = np.asarray(B, dtype=float) # garantit que B est un tableau numpy de flottants ; si c’est déjà un tableau, il n’est pas recopié (asarray ne crée pas de copie)
     n = len(B)
     Y = np.zeros(n)
-    # Resolution of TY = B, where Y = transp(T).X with an ascending recurrence
+    # Résolution de T·Y = B, où Y = transpose(T)·X, avec une récurrence ascendante
     Y[0] = B[0]/T_Diag[0]
     for i in range(1,n):
         Y[i] = (B[i] - T_ss_Diag[i-1]*Y[i-1])/T_Diag[i]
-    # Resolution of transp(T).X = Y with a descending recurrence
+    # Résolution de transpose(T)·X = Y, avec une récurrence descendante
     X = np.zeros(n)
     X[n-1] = Y[n-1]/T_Diag[n-1]
     for i in range(n-2,-1,-1):
@@ -172,13 +181,13 @@ def ComputeTangentVectors_C2(Points):
     Bx[-1] = 3.0 * (Points[-1][0] - Points[-2][0])
     By[-1] = 3.0 * (Points[-1][1] - Points[-2][1])
 
-    # points intÃ©rieurs
+    # points intérieurs
     for i in range(1, n-1):
         Diag[i] = 4.0
         Bx[i] = 3.0 * (Points[i+1][0] - Points[i-1][0])
         By[i] = 3.0 * (Points[i+1][1] - Points[i-1][1])
 
-    # factorisation + rÃ©solution
+    # factorisation + résolution
     T_Diag, T_ss_Diag = Cholesky_Factorization(Diag, Diagsym)
     mx = Solve_Cholesky(T_Diag, T_ss_Diag, Bx)
     my = Solve_Cholesky(T_Diag, T_ss_Diag, By)
@@ -186,54 +195,12 @@ def ComputeTangentVectors_C2(Points):
     m = [np.array([mx[i], my[i]]) for i in range(n)]
     return m
 
-
-
-
-def splines(Order):
-    if Order == 1:
-        c = float(input("Enter tension parameter c (0 for Catmull-Rom, 1 for linear): "))
-    xp, yp = PolygonAcquisition(ax1,'ob','--b')
-    #xp, yp = [0, -1.5, -2.5, -2.75, -2, -0.75, 0, 0.75, 2, 2.75, 2.5, 1.5, 0],[-6, -3, -1, 2, 4, 5, 3, 5, 4, 2, -1, -3, -6]
-    n_points = len(xp)
-    if n_points < 2:
-        print("Il faut au moins deux points.")
-        return
-    n_segments = n_points - 1
-    Points = [np.array([xp[i], yp[i]]) for i in range(n_points)]
-
-    if Order == 1:
-        m = ComputeTangents_equidistant(Points, c)
-    elif Order == 2:
-        m = ComputeTangentVectors_C2(Points)
-
-    #print("Number of points acquired:", n_points)
-
-    t_segment = np.linspace(0, 1, 500)
-    K = []
-    t_global = []
-    ax1.set_title("Spline C2")
-    for i in range(n_segments):
-        Bezier_segment = []
-
-        B0, B1, B2, B3 = Hermite2Bezier(Points[i], Points[i+1], m[i], m[i+1])
-        
-        Bezier_segment = np.array([bezier_cubic(t, B0, B1, B2, B3) for t in t_segment])
-        
-        calculCourbure(i,B0,B1,B2,B3,K,t_global)
-        #Bezier_segments.append(Bezier_segment)
-        ax1.plot(Bezier_segment[:,0], Bezier_segment[:,1], 'r')
-        plt.draw()
-    
-    ax2.plot(t_global,K)
-    ax2.set_xlabel('Parametre t')
-    ax2.set_ylabel('Curvature Îº')
-    ax2.set_title('Curvature of the spline')
-    ax2.grid(True)
-
-    plt.tight_layout()
-    plt.show()
-
 def compute_spline(points, order, tension=None):
+    """
+    Calcule l'ensemble des points d'une spline cubique interpolante définie par une liste
+    de points de contrôle.  
+    """
+
     n_points = len(points)
     n_segments = n_points - 1
     
@@ -265,7 +232,7 @@ def compute_spline(points, order, tension=None):
 
 
 def ManualPointAcquisition():
-    """ 
+    """
     Acquisition manuelle des points de contrôle via le terminal.
     L'utilisateur saisit les coordonnées x et y sous forme de listes séparées par des virgules.
     """
@@ -316,7 +283,7 @@ if __name__ == "__main__":
     mode = input("Mode d'acquisition : (M)anuelle ou (G)raphique ? [G/M] ").strip().upper()
     
     xp, yp = [], []
-        # Variables fournies pour le test du contre-exemple de convex
+    # Variables fournies pour le test du contre-exemple de convex
     """ xp = [0, 4.5, 5, 4.5, 2.5, 0, 0]
     yp = [0, 0, 1.5, 3, 5, 3, 0] """
     # Monotonie
